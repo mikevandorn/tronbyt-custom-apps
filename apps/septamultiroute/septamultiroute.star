@@ -106,52 +106,38 @@ def sort_stops_geographically(stops):
     else:
         return sorted(stops, key = lambda s: float(s["stop_lat"]))
 
-def stop_direction(dlat, dlng):
-    if abs(dlng) >= abs(dlat):
-        return "NB" if dlng > 0 else "SB"
-    else:
-        return "WB" if dlat > 0 else "EB"
-
-def direction_labels(stops):
-    name_groups = {}
+def direction_destinations(stops):
+    endpoints = {}
     for s in stops:
-        name = s["stop_name"]
-        if name not in name_groups:
-            name_groups[name] = []
-        name_groups[name].append(s)
-    labels = {}
-    for name in name_groups:
-        group = name_groups[name]
-        if len(group) < 2:
-            continue
-        total_lat = 0.0
-        total_lng = 0.0
-        for s in group:
-            total_lat += float(s["stop_lat"])
-            total_lng += float(s["stop_lon"])
-        center_lat = total_lat / len(group)
-        center_lng = total_lng / len(group)
-        for s in group:
-            dlat = float(s["stop_lat"]) - center_lat
-            dlng = float(s["stop_lon"]) - center_lng
+        direction = str(int(s["direction_id"]))
+        sequence = int(s["stop_sequence"])
+        endpoint = endpoints.get(direction)
+        if endpoint == None or sequence > endpoint["sequence"]:
+            endpoints[direction] = {
+                "sequence": sequence,
+                "name": s["stop_name"],
+            }
 
-            # Key by both ID and direction to be safe
-            key = "%s_%s" % (int(s["stop_id"]), int(s["direction_id"]))
-            labels[key] = stop_direction(dlat, dlng)
-    return labels
+    destinations = {}
+    for direction, endpoint in endpoints.items():
+        name = endpoint["name"].replace("&amp;", "&")
+        name = name.replace(" - Drop-off Only", "")
+        name = name.replace(" - MBNS", "")
+        destinations[direction] = name
+    return destinations
 
 def get_stops(route_id):
     stops = sort_stops_geographically(fetch_stops(route_id))
-    labels = direction_labels(stops)
+    destinations = direction_destinations(stops)
     seen = {}
     options = []
     for i in stops:
         stop_id_int = int(i["stop_id"])
         key = "%s_%s" % (stop_id_int, int(i["direction_id"]))
-        label = labels.get(key, "")
+        destination = destinations.get(str(int(i["direction_id"])), "")
         display_name = i["stop_name"].replace("&amp;", "&")
-        if label:
-            display_name += " (" + label + ")"
+        if destination:
+            display_name += " (To " + destination + ")"
         display_name += " [" + str(stop_id_int) + "]"
 
         # Sometimes a stop is listed multiple times for different patterns
@@ -442,12 +428,19 @@ def get_schedule(route, stopid, show_relative_times, scale):
 
 def select_stop_for(stop_id, route):
     options = get_stops(route)
+    stop_names = {
+        "stop1": "Route 1 Stop",
+        "stop2": "Route 2 Stop",
+        "stop3": "Route 3 Stop",
+        "stop4": "Route 4 Stop",
+    }
+    stop_name = stop_names.get(stop_id, "Stop")
     if not options:
-        return [schema.Text(id = stop_id, name = "Stop", desc = "No stops found", default = "")]
+        return [schema.Text(id = stop_id, name = stop_name, desc = "No stops found", default = "")]
     return [
         schema.Dropdown(
             id = stop_id,
-            name = "Stop",
+            name = stop_name,
             desc = "Select a stop and direction.",
             icon = "bus",
             default = options[0].value,
@@ -559,7 +552,13 @@ def get_schema():
                 source = "route1",
                 handler = select_stop_1,
             ),
-            schema.Toggle(id = "enable2", name = "Show route 2", desc = "Enable the second route.", icon = "bus", default = False),
+            schema.Toggle(
+                id = "enable2",
+                name = "Show route 2",
+                desc = "Enable the second route.",
+                icon = "bus",
+                default = False,
+            ),
             schema.Dropdown(
                 id = "route2",
                 name = "Route 2",
@@ -573,7 +572,13 @@ def get_schema():
                 source = "route2",
                 handler = select_stop_2,
             ),
-            schema.Toggle(id = "enable3", name = "Show route 3", desc = "Enable the third route.", icon = "bus", default = False),
+            schema.Toggle(
+                id = "enable3",
+                name = "Show route 3",
+                desc = "Enable the third route.",
+                icon = "bus",
+                default = False,
+            ),
             schema.Dropdown(
                 id = "route3",
                 name = "Route 3",
@@ -587,7 +592,13 @@ def get_schema():
                 source = "route3",
                 handler = select_stop_3,
             ),
-            schema.Toggle(id = "enable4", name = "Show route 4", desc = "Enable the fourth route.", icon = "bus", default = False),
+            schema.Toggle(
+                id = "enable4",
+                name = "Show route 4",
+                desc = "Enable the fourth route.",
+                icon = "bus",
+                default = False,
+            ),
             schema.Dropdown(
                 id = "route4",
                 name = "Route 4",
