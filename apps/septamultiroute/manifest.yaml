@@ -1,0 +1,12 @@
+---
+id: septamultiroute
+name: SEPTA Multi-Route
+summary: Up to four SEPTA routes
+desc: Displays upcoming arrivals for up to four SEPTA routes and stops.
+author: Merkel Tabby
+supports2x: true
+fileName: septamultiroute.star
+packageName: septamultiroute
+recommendedInterval: 1
+category: transit
+tags: []
