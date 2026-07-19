@@ -1,0 +1,15 @@
+---
+id: combined-calendar
+name: Combined Calendar
+summary: Combined daily agenda
+desc: Displays today's events from up to four iCal calendars in one chronological agenda.
+author: Merkel Tabby
+supports2x: true
+fileName: combined_calendar.star
+packageName: combinedcalendar
+recommendedInterval: 1
+category: utilities
+tags:
+  - productivity
+  - utility
+  - calendar
