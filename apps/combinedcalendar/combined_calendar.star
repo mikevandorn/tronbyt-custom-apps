@@ -263,17 +263,31 @@ def agenda_page(events, now, scale, scroll_titles):
 
 def render_agenda(events, now):
     scale = 2 if canvas.is2x() else 1
-    sequence = []
-    for start in range(0, len(events), 4):
-        page_events = events[start:start + 4]
-        static_page = agenda_page(page_events, now, scale, False)
-        scrolling_page = agenda_page(page_events, now, scale, True)
+    first_page_events = events[:4]
+    static_first_page = agenda_page(first_page_events, now, scale, False)
+    scrolling_first_page = agenda_page(first_page_events, now, scale, True)
 
-        # Hold each page for four seconds before long titles begin moving.
-        sequence.append(render.Animation(
-            children = [static_page for _ in range(40)],
+    # Hold the landing page for four seconds, then scroll only its long titles.
+    sequence = [
+        render.Animation(children = [static_first_page for _ in range(40)]),
+        scrolling_first_page,
+    ]
+
+    # After the landing page, make one vertical pass through the full agenda.
+    # Rows are static here to avoid unreliable nested marquee animations.
+    if len(events) > 4:
+        all_rows = [agenda_row(event, now, scale, False) for event in events]
+        sequence.append(render.Box(
+            width = 64 * scale,
+            height = 32 * scale,
+            color = "#000000",
+            child = render.Marquee(
+                width = 64 * scale,
+                height = 32 * scale,
+                child = render.Column(children = all_rows),
+                scroll_direction = "vertical",
+            ),
         ))
-        sequence.append(scrolling_page)
 
     return render.Root(
         child = render.Sequence(
