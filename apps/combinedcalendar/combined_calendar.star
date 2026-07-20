@@ -289,13 +289,19 @@ def render_agenda(events, now):
             ),
         ))
 
+    # End on a static page for longer than any normal app slot. Tronbyt will
+    # advance on its regular schedule instead of looping back to the marquee.
+    terminal_page = agenda_page(events[-4:], now, scale, False)
+    sequence.append(render.Animation(
+        children = [terminal_page for _ in range(600)],
+    ))
+
     return render.Root(
         child = render.Sequence(
             children = sequence,
         ),
         delay = 100,
         max_age = 60,
-        show_full_animation = True,
     )
 
 def message_screen(line1, line2):
