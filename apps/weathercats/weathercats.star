@@ -1,3 +1,5 @@
+load("angela-merkel-birthday-v2.png", angela_merkel_birthday_file = "file")
+load("angela-merkel-birthday-v2@2x.png", angela_merkel_birthday_2x_file = "file")
 load("cache.star", "cache")
 load("christmas-v2.png", christmas_file = "file")
 load("christmas-v2@2x.png", christmas_2x_file = "file")
@@ -9,6 +11,8 @@ load("cloudy-v2.png", cloudy_file = "file")
 load("cloudy-v2@2x.png", cloudy_2x_file = "file")
 load("cold-v2.png", cold_file = "file")
 load("cold-v2@2x.png", cold_2x_file = "file")
+load("easter-v3.png", easter_file = "file")
+load("easter-v3@2x.png", easter_2x_file = "file")
 load("encoding/json.star", "json")
 load("halloween-v2.png", halloween_file = "file")
 load("halloween-v2@2x.png", halloween_2x_file = "file")
@@ -18,6 +22,8 @@ load("http.star", "http")
 load("humanize.star", "humanize")
 load("july-4th-v2.png", july_fourth_file = "file")
 load("july-4th-v2@2x.png", july_fourth_2x_file = "file")
+load("kate-arrival-v2.png", kate_arrival_file = "file")
+load("kate-arrival-v2@2x.png", kate_arrival_2x_file = "file")
 load("new-years-v2.png", new_years_file = "file")
 load("new-years-v2@2x.png", new_years_2x_file = "file")
 load("oedi-fall.png", oedi_fall_file = "file")
@@ -31,6 +37,8 @@ load("oedi-winter@2x.png", oedi_winter_2x_file = "file")
 load("rain-v2.png", rain_file = "file")
 load("rain-v2@2x.png", rain_2x_file = "file")
 load("render.star", "canvas", "render")
+load("rhubarb-birthday-v2.png", rhubarb_birthday_file = "file")
+load("rhubarb-birthday-v2@2x.png", rhubarb_birthday_2x_file = "file")
 load("schema.star", "schema")
 load("snow-v2.png", snow_file = "file")
 load("snow-v2@2x.png", snow_2x_file = "file")
@@ -54,20 +62,24 @@ DEFAULT_LATITUDE = 39.9526
 DEFAULT_LONGITUDE = -75.1652
 
 SCENES = {
+    "angela-merkel-birthday": angela_merkel_birthday_file.readall("rb"),
     "christmas": christmas_file.readall("rb"),
     "cinco-de-mayo": cinco_file.readall("rb"),
     "clear-night": clear_night_file.readall("rb"),
     "cloudy": cloudy_file.readall("rb"),
     "cold": cold_file.readall("rb"),
+    "easter": easter_file.readall("rb"),
     "halloween": halloween_file.readall("rb"),
     "hot": hot_file.readall("rb"),
     "july-4th": july_fourth_file.readall("rb"),
+    "kate-arrival": kate_arrival_file.readall("rb"),
     "new-years": new_years_file.readall("rb"),
     "oedi-fall": oedi_fall_file.readall("rb"),
     "oedi-spring": oedi_spring_file.readall("rb"),
     "oedi-summer": oedi_summer_file.readall("rb"),
     "oedi-winter": oedi_winter_file.readall("rb"),
     "rain": rain_file.readall("rb"),
+    "rhubarb-birthday": rhubarb_birthday_file.readall("rb"),
     "snow": snow_file.readall("rb"),
     "st-patricks-day": st_patricks_file.readall("rb"),
     "storm": storm_file.readall("rb"),
@@ -78,20 +90,24 @@ SCENES = {
 }
 
 SCENES_2X = {
+    "angela-merkel-birthday": angela_merkel_birthday_2x_file.readall("rb"),
     "christmas": christmas_2x_file.readall("rb"),
     "cinco-de-mayo": cinco_2x_file.readall("rb"),
     "clear-night": clear_night_2x_file.readall("rb"),
     "cloudy": cloudy_2x_file.readall("rb"),
     "cold": cold_2x_file.readall("rb"),
+    "easter": easter_2x_file.readall("rb"),
     "halloween": halloween_2x_file.readall("rb"),
     "hot": hot_2x_file.readall("rb"),
     "july-4th": july_fourth_2x_file.readall("rb"),
+    "kate-arrival": kate_arrival_2x_file.readall("rb"),
     "new-years": new_years_2x_file.readall("rb"),
     "oedi-fall": oedi_fall_2x_file.readall("rb"),
     "oedi-spring": oedi_spring_2x_file.readall("rb"),
     "oedi-summer": oedi_summer_2x_file.readall("rb"),
     "oedi-winter": oedi_winter_2x_file.readall("rb"),
     "rain": rain_2x_file.readall("rb"),
+    "rhubarb-birthday": rhubarb_birthday_2x_file.readall("rb"),
     "snow": snow_2x_file.readall("rb"),
     "st-patricks-day": st_patricks_2x_file.readall("rb"),
     "storm": storm_2x_file.readall("rb"),
@@ -128,10 +144,16 @@ def main(config):
     timezone = weather.get("timezone") or DEFAULT_TIMEZONE
     now = time.now().in_location(timezone)
 
+    kate_arrival = config.bool("kate_arrival", False)
     kate_override = config.bool("kate_override", False)
     kate_season = config.str("kate_season", "automatic")
 
-    if kate_override:
+    birthday_scene = get_birthday_scene(now)
+    if kate_arrival:
+        scene_name = "kate-arrival"
+    elif birthday_scene:
+        scene_name = birthday_scene
+    elif kate_override:
         scene_name = "oedi-" + get_kate_season(now, kate_season)
     else:
         holiday_scene = get_holiday_scene(now)
@@ -283,6 +305,8 @@ def get_holiday_scene(now):
         return "valentines-day"
     if month == 3 and day >= 14 and day <= 20:
         return "st-patricks-day"
+    if is_easter_week(now):
+        return "easter"
     if month == 5 and day >= 2 and day <= 8:
         return "cinco-de-mayo"
     if month == 7 and day >= 1 and day <= 7:
@@ -294,6 +318,48 @@ def get_holiday_scene(now):
     if month == 12 and day >= 22 and day <= 28:
         return "christmas"
     return None
+
+def get_birthday_scene(now):
+    if now.month == 4 and now.day == 15:
+        return "angela-merkel-birthday"
+    if now.month == 8 and now.day == 4:
+        return "rhubarb-birthday"
+    return None
+
+def is_easter_week(now):
+    easter_month, easter_day = get_easter_date(now.year)
+    today_ordinal = day_of_year(now.year, now.month, now.day)
+    easter_ordinal = day_of_year(now.year, easter_month, easter_day)
+    return today_ordinal >= easter_ordinal - 6 and today_ordinal <= easter_ordinal
+
+def get_easter_date(year):
+    # Gregorian computus: Easter Sunday for any supported calendar year.
+    a = year % 19
+    b = year // 100
+    c = year % 100
+    d = b // 4
+    e = b % 4
+    f = (b + 8) // 25
+    g = (b - f + 1) // 3
+    h = (19 * a + b - d - g + 15) % 30
+    i = c // 4
+    k = c % 4
+    l = (32 + 2 * e + 2 * i - h - k) % 7
+    m = (a + 11 * h + 22 * l) // 451
+    month = (h + l - 7 * m + 114) // 31
+    day = ((h + l - 7 * m + 114) % 31) + 1
+    return month, day
+
+def day_of_year(year, month, day):
+    february_days = 29 if is_leap_year(year) else 28
+    month_lengths = [31, february_days, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31]
+    total = day
+    for index in range(month - 1):
+        total += month_lengths[index]
+    return total
+
+def is_leap_year(year):
+    return year % 400 == 0 or (year % 4 == 0 and year % 100 != 0)
 
 def is_thanksgiving_week(now):
     month = now.month
@@ -412,6 +478,13 @@ def get_schema():
                 desc = "US ZIP code used for local weather and time.",
                 icon = "locationDot",
                 default = DEFAULT_ZIP,
+            ),
+            schema.Toggle(
+                id = "kate_arrival",
+                name = "Kate arrives today",
+                desc = "Show Oedi arriving with his suitcase until switched off.",
+                icon = "suitcase",
+                default = False,
             ),
             schema.Toggle(
                 id = "kate_override",
