@@ -1,0 +1,15 @@
+---
+id: weathercats
+name: Weather Cats
+summary: Cat powered weather clock
+desc: Displays current weather, temperature, time, and date using custom pixel-art cat scenes and automatic holiday artwork.
+author: Merkel Tabby
+supports2x: true
+fileName: weathercats.star
+packageName: weathercats
+recommendedInterval: 1
+category: weather
+tags:
+  - weather
+  - clock
+  - cats
