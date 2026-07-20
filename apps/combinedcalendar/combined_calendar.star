@@ -70,6 +70,7 @@ EXTENDED_THRESHOLD = 4 * 60 * 60  # seconds: events longer than this are "extend
 CHAR_ADV = {"!": 2, "'": 2, ".": 2, ":": 2, " ": 3, "(": 3, ")": 3, ",": 3, "+": 4, "-": 4, "?": 4, "I": 4, "J": 4, "T": 4, "c": 4, "i": 4, "j": 4, "l": 4, "s": 4, "v": 4, "&": 5, "/": 5, "0": 5, "1": 5, "2": 5, "3": 5, "4": 5, "5": 5, "6": 5, "7": 5, "8": 5, "9": 5, "A": 5, "B": 5, "C": 5, "D": 5, "E": 5, "F": 5, "G": 5, "H": 5, "K": 5, "L": 5, "N": 5, "O": 5, "P": 5, "Q": 5, "R": 5, "S": 5, "U": 5, "X": 5, "Z": 5, "a": 5, "b": 5, "d": 5, "e": 5, "f": 5, "g": 5, "h": 5, "k": 5, "n": 5, "o": 5, "p": 5, "q": 5, "r": 5, "t": 5, "u": 5, "x": 5, "y": 5, "z": 5, "M": 6, "V": 6, "W": 6, "Y": 6, "m": 6, "w": 6}
 DEFAULT_ADV = 6  # unknown chars: assume widest, so we never under-estimate & clip
 TITLE_STATIC_MAX = 58  # px; title <= this fits at x=3 with 3px right margin -> static
+AGENDA_TITLE_STATIC_MAX = 40  # px available after the time column on agenda rows
 
 def text_width(s):
     if len(s) == 0:
@@ -251,27 +252,32 @@ def agenda_row(event, now, scale, scroll_horizontally = True):
         )
     return row
 
-def agenda_page(events, now, scale, scroll_titles):
+def agenda_page(events, now, scale, scroll_index = -1):
     return render.Box(
         width = 64 * scale,
         height = 32 * scale,
         color = "#000000",
         child = render.Column(
-            children = [agenda_row(event, now, scale, scroll_titles) for event in events],
+            children = [
+                agenda_row(event, now, scale, i == scroll_index)
+                for i, event in enumerate(events)
+            ],
         ),
     )
 
 def render_agenda(events, now):
     scale = 2 if canvas.is2x() else 1
     first_page_events = events[:4]
-    static_first_page = agenda_page(first_page_events, now, scale, False)
-    scrolling_first_page = agenda_page(first_page_events, now, scale, True)
+    static_first_page = agenda_page(first_page_events, now, scale)
 
-    # Hold the landing page for four seconds, then scroll only its long titles.
+    # Hold the landing page for four seconds, then scroll each long title in
+    # turn. Other rows remain completely static while that one row moves.
     sequence = [
         render.Animation(children = [static_first_page for _ in range(40)]),
-        scrolling_first_page,
     ]
+    for i, event in enumerate(first_page_events):
+        if text_width(event["summary"]) > AGENDA_TITLE_STATIC_MAX:
+            sequence.append(agenda_page(first_page_events, now, scale, i))
 
     # After the landing page, make one vertical pass through the full agenda.
     # Rows are static here to avoid unreliable nested marquee animations.
@@ -291,7 +297,7 @@ def render_agenda(events, now):
 
     # End on a static page for longer than any normal app slot. Tronbyt will
     # advance on its regular schedule instead of looping back to the marquee.
-    terminal_page = agenda_page(events[-4:], now, scale, False)
+    terminal_page = agenda_page(events[-4:], now, scale)
     sequence.append(render.Animation(
         children = [terminal_page for _ in range(600)],
     ))

@@ -475,9 +475,8 @@ def eta_label(departure):
 
 def compact_route_row(route, stop, scale, row_height):
     departures = call_schedule_api(route, stop)[:2] if stop else []
-    arrival_text = "--"
-    if departures:
-        arrival_text = "  ".join([eta_label(dep) for dep in departures])
+    arrival_1 = eta_label(departures[0]) if len(departures) > 0 else "--"
+    arrival_2 = eta_label(departures[1]) if len(departures) > 1 else "--"
 
     route_info = get_route_info(route)
     route_bg_color = "#000000"
@@ -507,9 +506,23 @@ def compact_route_row(route, stop, scale, row_height):
                         child = render.Text(route, font = font, color = route_text_color),
                     ),
                 ),
-                render.Padding(
-                    pad = (2 * scale, top_pad, 0, 0),
-                    child = render.Text(arrival_text, font = font, color = "#ffffff"),
+                render.Box(
+                    width = 25 * scale,
+                    height = row_height,
+                    color = "#000000",
+                    child = render.Padding(
+                        pad = (2 * scale, top_pad, 0, 0),
+                        child = render.Text(arrival_1, font = font, color = "#ffffff"),
+                    ),
+                ),
+                render.Box(
+                    width = 25 * scale,
+                    height = row_height,
+                    color = "#000000",
+                    child = render.Padding(
+                        pad = (2 * scale, top_pad, 0, 0),
+                        child = render.Text(arrival_2, font = font, color = "#ffffff"),
+                    ),
                 ),
             ],
         ),
