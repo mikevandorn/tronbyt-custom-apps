@@ -225,7 +225,7 @@ def format_compact_time(event, now):
         minute = "0" + minute
     return str(hour) + ":" + minute
 
-def agenda_row(event, now, scale):
+def agenda_row(event, now, scale, scroll_horizontally = True):
     font = "tom-thumb" if scale == 1 else "terminus-12"
     row = render.Row(
         cross_align = "center",
@@ -243,34 +243,45 @@ def agenda_row(event, now, scale):
             ),
         ],
     )
-    return render.Marquee(
+    if scroll_horizontally:
+        return render.Marquee(
+            width = 64 * scale,
+            height = 8 * scale,
+            child = row,
+        )
+    return row
+
+def agenda_page(events, now, scale, scroll_titles):
+    return render.Box(
         width = 64 * scale,
-        height = 8 * scale,
-        child = row,
-        delay = 20,
+        height = 32 * scale,
+        color = "#000000",
+        child = render.Column(
+            children = [agenda_row(event, now, scale, scroll_titles) for event in events],
+        ),
     )
 
 def render_agenda(events, now):
     scale = 2 if canvas.is2x() else 1
-    rows = [agenda_row(event, now, scale) for event in events]
-    column = render.Column(children = rows)
-    content = column
-    if len(rows) > 4:
-        content = render.Marquee(
-            width = 64 * scale,
-            height = 32 * scale,
-            child = column,
-            scroll_direction = "vertical",
-        )
+    sequence = []
+    for start in range(0, len(events), 4):
+        page_events = events[start:start + 4]
+        static_page = agenda_page(page_events, now, scale, False)
+        scrolling_page = agenda_page(page_events, now, scale, True)
+
+        # Hold each page for four seconds before long titles begin moving.
+        sequence.append(render.Animation(
+            children = [static_page for _ in range(40)],
+        ))
+        sequence.append(scrolling_page)
+
     return render.Root(
-        child = render.Box(
-            width = 64 * scale,
-            height = 32 * scale,
-            color = "#000000",
-            child = content,
+        child = render.Sequence(
+            children = sequence,
         ),
-        delay = 50,
+        delay = 100,
         max_age = 60,
+        show_full_animation = True,
     )
 
 def message_screen(line1, line2):
