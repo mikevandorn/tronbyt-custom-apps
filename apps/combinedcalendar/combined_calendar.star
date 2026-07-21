@@ -278,11 +278,11 @@ def agenda_page(events, now, scale, scroll_index = -1):
 def render_agenda(events, now, faster_scrolling):
     scale = 2 if canvas.is2x() else 1
     frame_delay = 70 if faster_scrolling else 100
-    landing_frames = 57 if faster_scrolling else 40
+    landing_frames = 14 if faster_scrolling else 10
     first_page_events = events[:4]
     static_first_page = agenda_page(first_page_events, now, scale)
 
-    # Hold the landing page for four seconds, then scroll only the next timed
+    # Hold the landing page for one second, then scroll only the next timed
     # event. All-day events and every other row remain completely static.
     sequence = [
         render.Animation(children = [static_first_page for _ in range(landing_frames)]),
