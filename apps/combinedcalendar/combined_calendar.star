@@ -122,10 +122,11 @@ def main(config):
         return message_screen("Add an iCal URL", "in app settings")
 
     include_all_day = config.bool("include_all_day", True)
+    faster_scrolling = config.bool("faster_scrolling", True)
     agenda = select_today(events, now, include_all_day)
     if len(agenda) == 0:
         return render_clear_day()
-    return render_agenda(agenda, now)
+    return render_agenda(agenda, now, faster_scrolling)
 
 def render_clear_day():
     scale = 2 if canvas.is2x() else 1
@@ -174,6 +175,13 @@ def get_schema():
             name = "Show All-Day Events",
             desc = "Place all-day events at the top of today's agenda.",
             icon = "calendarDay",
+            default = True,
+        ),
+        schema.Toggle(
+            id = "faster_scrolling",
+            name = "Faster Scrolling",
+            desc = "Finish title and agenda scrolling within shorter app rotations.",
+            icon = "gaugeHigh",
             default = True,
         ),
         schema.Location(
@@ -249,6 +257,8 @@ def agenda_row(event, now, scale, scroll_horizontally = True):
             width = 64 * scale,
             height = 8 * scale,
             child = row,
+            offset_start = 0,
+            offset_end = 64 * scale,
         )
     return row
 
@@ -265,19 +275,27 @@ def agenda_page(events, now, scale, scroll_index = -1):
         ),
     )
 
-def render_agenda(events, now):
+def render_agenda(events, now, faster_scrolling):
     scale = 2 if canvas.is2x() else 1
+    frame_delay = 70 if faster_scrolling else 100
+    landing_frames = 57 if faster_scrolling else 40
     first_page_events = events[:4]
     static_first_page = agenda_page(first_page_events, now, scale)
 
-    # Hold the landing page for four seconds, then scroll each long title in
-    # turn. Other rows remain completely static while that one row moves.
+    # Hold the landing page for four seconds, then scroll only the next timed
+    # event. All-day events and every other row remain completely static.
     sequence = [
-        render.Animation(children = [static_first_page for _ in range(40)]),
+        render.Animation(children = [static_first_page for _ in range(landing_frames)]),
     ]
+    next_event_index = -1
     for i, event in enumerate(first_page_events):
-        if text_width(event["summary"]) > AGENDA_TITLE_STATIC_MAX:
-            sequence.append(agenda_page(first_page_events, now, scale, i))
+        if not event["all_day"]:
+            next_event_index = i
+            break
+    if next_event_index >= 0:
+        next_event = first_page_events[next_event_index]
+        if text_width(next_event["summary"]) > AGENDA_TITLE_STATIC_MAX:
+            sequence.append(agenda_page(first_page_events, now, scale, next_event_index))
 
     # After the landing page, make one vertical pass through the full agenda.
     # Rows are static here to avoid unreliable nested marquee animations.
@@ -306,7 +324,7 @@ def render_agenda(events, now):
         child = render.Sequence(
             children = sequence,
         ),
-        delay = 100,
+        delay = frame_delay,
         max_age = 60,
     )
 
