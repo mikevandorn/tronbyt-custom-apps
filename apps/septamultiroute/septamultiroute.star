@@ -51,10 +51,19 @@ def call_routes_api():
     return sort_routes(routes)
 
 def sort_routes(routes):
+    # SEPTA may publish overlapping releases in the route catalog. Keep only
+    # the newest record for each route so current names and colors are used.
+    latest_routes = {}
+    for route in routes:
+        route_id = route["route_id"]
+        existing = latest_routes.get(route_id)
+        if existing == None or route.get("release_name", "") > existing.get("release_name", ""):
+            latest_routes[route_id] = route
+
     numerical_routes = []
     non_numerical_routes = []
 
-    for route in routes:
+    for route in latest_routes.values():
         name = route["route_short_name"]
         if name.isdigit():
             numerical_routes.append(route)
