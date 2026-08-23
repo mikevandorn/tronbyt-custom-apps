@@ -21,22 +21,31 @@ DEFAULT_STOP = "10264"
 DEFAULT_BANNER = ""
 
 def call_routes_api():
-    cached = cache.get("routes_v2")
+    # Version the cache key so newly released routes appear immediately.
+    cache_key = "routes_flat_v3"
+    cached = cache.get(cache_key)
     if cached != None:
         return sort_routes(json.decode(cached))
 
-    # Try v2 first
-    r = http.get(API_V2 + "/routes/")
+    # The flat catalog follows SEPTA's current production GTFS release.
+    r = http.get(API_FLAT + "/routes.json")
     routes = []
     if r.status_code == 200:
         routes = r.json()
 
     if len(routes) > 0:
-        cache.set("routes_v2", json.encode(routes), ttl_seconds = 604800)
+        cache.set(cache_key, json.encode(routes), ttl_seconds = 86400)
         return sort_routes(routes)
 
-    # Fallback to v1 if v2 fails or is empty — do not cache so v2 is retried next render
-    r = http.get(API_V1 + "/Routes/")
+    # Fall back to v2, then v1. Do not cache fallback results so the current
+    # production catalog is retried on the next render.
+    r = http.get(API_V2 + "/routes/")
+    if r.status_code == 200:
+        routes = r.json()
+    if len(routes) > 0:
+        return sort_routes(routes)
+
+    r = http.get(API_V1 + "/Routes/index.php")
     if r.status_code == 200:
         routes = r.json()
     return sort_routes(routes)
